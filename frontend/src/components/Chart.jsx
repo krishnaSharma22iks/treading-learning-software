@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
    Minimize button rendered via Portal → document.body
    This bypasses the TradingView iframe stacking context
 ───────────────────────────────────────────────────── */
-function MinimizePortal({ onClose }) {
+function MinimizePortal({ onClose, isMobile }) {
   return ReactDOM.createPortal(
     <AnimatePresence>
       <motion.button
@@ -20,38 +20,31 @@ function MinimizePortal({ onClose }) {
         title="Minimize chart  (ESC)"
         style={{
           position:     "fixed",
-          top:          16,
-          right:        16,
-          zIndex:       2147483647,   /* max possible z-index */
+          bottom:       isMobile ? 20 : 32,
+          right:        isMobile ? 20 : 32,
+          zIndex:       2147483647,
           display:      "flex",
           alignItems:   "center",
-          gap:          8,
-          background:   "linear-gradient(135deg, #f43f5e, #f97316)",
+          justifyContent: "center",
+          gap:          isMobile ? 0 : 8,
+          background:   "rgba(244, 63, 94, 0.9)",
+          backdropFilter: "blur(10px)",
           color:        "#fff",
           fontWeight:   900,
-          fontSize:     13,
-          letterSpacing: "0.08em",
+          fontSize:     11,
+          letterSpacing: "0.05em",
           textTransform: "uppercase",
-          padding:      "10px 20px",
-          borderRadius: 14,
-          border:       "2px solid rgba(251,113,133,0.6)",
-          boxShadow:    "0 0 0 3px rgba(244,63,94,0.25), 0 8px 32px rgba(244,63,94,0.45)",
+          padding:      isMobile ? "10px" : "8px 16px",
+          borderRadius: isMobile ? "50%" : 12,
+          border:       "1px solid rgba(255,255,255,0.2)",
+          boxShadow:    "0 8px 32px rgba(0,0,0,0.4)",
           cursor:       "pointer",
           userSelect:   "none",
           pointerEvents: "all",
-          transition:   "transform 0.15s, box-shadow 0.15s",
-        }}
-        onMouseEnter={e => {
-          e.currentTarget.style.transform = "scale(1.07)";
-          e.currentTarget.style.boxShadow = "0 0 0 4px rgba(244,63,94,0.35), 0 12px 40px rgba(244,63,94,0.55)";
-        }}
-        onMouseLeave={e => {
-          e.currentTarget.style.transform = "scale(1)";
-          e.currentTarget.style.boxShadow = "0 0 0 3px rgba(244,63,94,0.25), 0 8px 32px rgba(244,63,94,0.45)";
         }}
       >
-        <Minimize2 style={{ width: 17, height: 17 }} />
-        Minimize
+        <Minimize2 style={{ width: isMobile ? 18 : 14, height: isMobile ? 18 : 14 }} />
+        {!isMobile && <span>Minimize</span>}
       </motion.button>
     </AnimatePresence>,
     document.body
@@ -60,10 +53,18 @@ function MinimizePortal({ onClose }) {
 
 /* ─────────────────────────────────────────────────── */
 
-function Chart({ pair }) {
+function Chart({ pair, isExpanded, setIsExpanded, timeframe }) {
   const chartRef         = useRef(null);
   const expandedChartRef = useRef(null);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const isMobile = windowWidth < 640;
 
   /* Mount TradingView widget */
   const mountWidget = (targetEl) => {
@@ -75,7 +76,7 @@ function Chart({ pair }) {
     script.innerHTML = JSON.stringify({
       autosize:            true,
       symbol:              `BINANCE:${pair}`,
-      interval:            "5",
+      interval:            timeframe === "1h" ? "60" : timeframe.replace("m", ""),
       timezone:            "Etc/UTC",
       theme:               "dark",
       style:               "1",
@@ -95,8 +96,8 @@ function Chart({ pair }) {
     targetEl.appendChild(script);
   };
 
-  useEffect(() => { if (!isExpanded) mountWidget(chartRef.current); }, [pair, isExpanded]);
-  useEffect(() => { if (isExpanded)  mountWidget(expandedChartRef.current); }, [isExpanded, pair]);
+  useEffect(() => { if (!isExpanded) mountWidget(chartRef.current); }, [pair, isExpanded, timeframe]);
+  useEffect(() => { if (isExpanded)  mountWidget(expandedChartRef.current); }, [isExpanded, pair, timeframe]);
 
   /* ESC key + scroll lock */
   useEffect(() => {
@@ -121,7 +122,7 @@ function Chart({ pair }) {
             </div>
             <div className="min-w-0">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block leading-none mb-1 truncate">Live Market Stream</span>
-              <span className="text-xs font-bold text-white uppercase truncate">{pair} · 5M INTERVAL</span>
+              <span className="text-xs font-bold text-white uppercase truncate">{pair} · {timeframe.toUpperCase()} INTERVAL</span>
             </div>
           </div>
 
@@ -165,9 +166,9 @@ function Chart({ pair }) {
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
               className="fixed inset-0 z-[950]"
-              style={{ padding: "clamp(6px, 1.5vw, 14px)" }}
+              style={{ padding: isMobile ? 0 : "clamp(6px, 1.5vw, 14px)" }}
             >
-              <div className="relative w-full h-full bg-[#020617] rounded-2xl overflow-hidden ring-2 ring-blue-500/30 shadow-[0_0_100px_rgba(59,130,246,0.20)]">
+              <div className="relative w-full h-full bg-[#020617] sm:rounded-2xl overflow-hidden ring-2 ring-blue-500/30 shadow-[0_0_100px_rgba(59,130,246,0.20)]">
                 <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-blue-400/70 to-transparent z-10 pointer-events-none" />
                 <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent z-10 pointer-events-none" />
                 <div id="tradingview_fullscreen_chart" ref={expandedChartRef} className="absolute inset-0 w-full h-full" />
@@ -175,7 +176,7 @@ function Chart({ pair }) {
             </motion.div>
 
             {/* ► MINIMIZE button via Portal (above iframe) */}
-            <MinimizePortal onClose={() => setIsExpanded(false)} />
+            <MinimizePortal onClose={() => setIsExpanded(false)} isMobile={isMobile} />
           </>
         )}
       </AnimatePresence>

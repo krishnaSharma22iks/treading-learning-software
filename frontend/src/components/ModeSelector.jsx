@@ -21,7 +21,7 @@ const ModeSelector = ({ mode, setMode }) => {
           {mode === m.id && (
             <motion.div
               layoutId="activeMode"
-              className="absolute inset-0 bg-blue-600 rounded-xl shadow-[0_0_20px_rgba(37,99,235,0.3)]"
+              className="absolute inset-0 bg-white/10 rounded-xl border border-white/20 shadow-[0_0_20px_rgba(255,255,255,0.05)]"
               transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
             />
           )}

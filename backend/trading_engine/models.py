@@ -141,6 +141,21 @@ class MarketStructure(str, Enum):
     CHOCH = "CHOCH"  # Change of Character
 
 
+class ConfidenceBreakdown(BaseModel):
+    trend_strength: int = Field(..., ge=0, le=100)
+    volume_strength: int = Field(..., ge=0, le=100)
+    structure_strength: int = Field(..., ge=0, le=100)
+    momentum_strength: int = Field(..., ge=0, le=100)
+
+    def to_dict(self):
+        return {
+            "trend_strength": self.trend_strength,
+            "volume_strength": self.volume_strength,
+            "structure_strength": self.structure_strength,
+            "momentum_strength": self.momentum_strength
+        }
+
+
 class SignalResponse(BaseModel):
     signal: SignalType = Field(..., description="BUY / SELL / NO TRADE")
     entry: Optional[float] = Field(None, description="Entry price")
@@ -148,6 +163,7 @@ class SignalResponse(BaseModel):
     take_profit: Optional[float] = Field(None, description="Take profit price")
     risk_reward_ratio: str = Field(..., description="Calculated R:R, must be 1:2 or better")
     confidence: int = Field(..., ge=0, le=100, description="Confidence score 0-100")
+    confidence_breakdown: Optional[ConfidenceBreakdown] = Field(None)
     trend: Trend = Field(..., description="Detected HTF trend")
     reason: List[str] = Field(default_factory=list, description="Reasons for signal")
     analyst: Optional[AnalystResponse] = Field(None, description="Expert analyst confirmation")
@@ -163,6 +179,7 @@ class SignalResponse(BaseModel):
             "take_profit": self.take_profit,
             "risk_reward_ratio": self.risk_reward_ratio,
             "confidence": self.confidence,
+            "confidence_breakdown": self.confidence_breakdown.to_dict() if self.confidence_breakdown else None,
             "trend": self.trend.value,
             "reason": self.reason,
             "analyst": self.analyst.to_dict() if self.analyst else None,

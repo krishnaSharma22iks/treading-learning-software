@@ -18,7 +18,37 @@ export function calculateRSI(data, period = 14) {
   return 100 - 100 / (1 + rs);
 }
 
-// 🔹 Moving Average (SAFE)
+// 🔹 Exponential Moving Average (EMA)
+export function calculateEMA(data, period = 20) {
+  if (data.length < period) return data[data.length - 1];
+
+  const k = 2 / (period + 1);
+  let ema = data.slice(0, period).reduce((a, b) => a + b, 0) / period;
+
+  for (let i = period; i < data.length; i++) {
+    ema = (data[i] * k) + (ema * (1 - k));
+  }
+
+  return ema;
+}
+
+// 🔹 Volume Weighted Average Price (VWAP)
+export function calculateVWAP(data) {
+  if (!data || data.length === 0) return 0;
+  
+  let totalPV = 0;
+  let totalVolume = 0;
+
+  data.forEach((d) => {
+    const typicalPrice = (d.high + d.low + d.close) / 3;
+    totalPV += typicalPrice * d.volume;
+    totalVolume += d.volume;
+  });
+
+  return totalVolume === 0 ? 0 : totalPV / totalVolume;
+}
+
+// 🔹 Moving Average (Simple - SMA)
 export function calculateMA(data, period = 50) {
   if (data.length < period) return data[data.length - 1];
 

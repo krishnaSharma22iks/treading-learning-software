@@ -1,7 +1,10 @@
 from google import genai
 import os
+from dotenv import load_dotenv
+load_dotenv()
 
-key = "AIzaSyBNB0iWL9HOdHFPe6d9R2hG8bi_pJsS6bo"
+key = os.getenv("AI_API_KEY")
+print("Loaded Key:", key)
 client = genai.Client(api_key=key)
 
 try:

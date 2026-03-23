@@ -1,0 +1,39 @@
+
+--- Testing: RSI Oversold (SELL should be rejected) ---
+Status Code: 200
+{
+  "signal": "HOLD",
+  "explanation": "High risk: SELL rejected because RSI is oversold (25)."
+}
+
+--- Testing: RSI Overbought (BUY should be rejected) ---
+Status Code: 200
+{
+  "signal": "HOLD",
+  "explanation": "High risk: BUY rejected because RSI is overbought (75)."
+}
+
+--- Testing: Low RR Ratio (Should be rejected) ---
+Status Code: 200
+{
+  "signal": "HOLD",
+  "explanation": "Low Risk/Reward (1:1.0). Minimum 1:1.5 required for safety."
+}
+
+--- Testing: Valid Signal (Should be accepted) ---
+Status Code: 200
+{
+  "signal": "BUY",
+  "entry": 60000,
+  "stop_loss": 59000,
+  "take_profit": 62000,
+  "confidence": 0.8,
+  "strategy": "Mock Trend"
+}
+
+--- Testing: EMA Trend N/A (Should be rejected) ---
+Status Code: 200
+{
+  "signal": "HOLD",
+  "explanation": "Signal rejected: EMA Trend data is unavailable."
+}

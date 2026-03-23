@@ -4,10 +4,10 @@ import { TrendingUp, TrendingDown, Clock, ShieldCheck, Target, Zap, AlertTriangl
 const SignalCard = ({ signal, entry, sl, tp, support, resistance, rsi, ai, trend, volumeSpike, expert, verdict }) => {
   const getStatusColor = (s) => {
     switch (s?.toUpperCase()) {
-      case "BUY": return "from-emerald-500/20 to-emerald-500/5 text-emerald-400 border-emerald-500/30";
-      case "SELL": return "from-rose-500/20 to-rose-500/5 text-rose-400 border-rose-500/30";
-      case "WAIT": return "from-amber-500/20 to-amber-500/5 text-amber-400 border-amber-500/30";
-      default: return "from-slate-500/20 to-slate-500/5 text-slate-400 border-slate-500/30";
+      case "BUY": return "from-emerald-500/10 to-transparent text-emerald-400 border-emerald-500/20";
+      case "SELL": return "from-rose-500/10 to-transparent text-rose-400 border-rose-500/20";
+      case "WAIT": return "from-slate-500/10 to-transparent text-slate-400 border-white/5";
+      default: return "from-slate-500/5 to-transparent text-slate-400 border-white/5";
     }
   };
 
@@ -15,7 +15,7 @@ const SignalCard = ({ signal, entry, sl, tp, support, resistance, rsi, ai, trend
     switch (s?.toUpperCase()) {
       case "BUY": return "shadow-emerald-500/20";
       case "SELL": return "shadow-rose-500/20";
-      case "WAIT": return "shadow-amber-500/20";
+      case "WAIT": return "shadow-slate-500/20";
       default: return "shadow-slate-500/20";
     }
   };
@@ -52,7 +52,7 @@ const SignalCard = ({ signal, entry, sl, tp, support, resistance, rsi, ai, trend
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
            <div className="bg-black/20 backdrop-blur-md p-5 rounded-2xl border border-white/5 flex flex-col items-center justify-center gap-1 group/item hover:bg-black/30 transition-colors">
               <div className="flex items-center gap-2 mb-1">
-                 <ArrowRight className="w-3.5 h-3.5 text-blue-400" />
+                 <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
                  <span className="text-[10px] font-black uppercase text-slate-500">Entry Zone</span>
               </div>
               <span className="text-xl font-black text-white">{entry ? entry.toFixed(2) : "---"}</span>
@@ -92,7 +92,7 @@ const SignalCard = ({ signal, entry, sl, tp, support, resistance, rsi, ai, trend
                  <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">RSI (Relative Strength)</span>
                  <div className="flex items-center gap-2">
                     <div className="w-12 h-1.5 bg-white/5 rounded-full overflow-hidden">
-                       <div className="h-full bg-blue-500" style={{ width: `${safeRsi}%` }}></div>
+                       <div className="h-full bg-slate-500" style={{ width: `${safeRsi}%` }}></div>
                     </div>
                     <span className="text-xs font-black text-slate-200">{safeRsi.toFixed(1)}</span>
                  </div>

@@ -31,7 +31,7 @@ const StrategySelector = ({ mode, strategy, setStrategy }) => {
           {strategy === s.id && (
             <motion.div
               layoutId="activeStrategy"
-              className="absolute inset-0 bg-indigo-600 rounded-xl shadow-[0_0_20px_rgba(79,70,229,0.3)]"
+              className="absolute inset-0 bg-white/10 rounded-xl border border-white/20 shadow-[0_0_20px_rgba(255,255,255,0.05)]"
               transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
             />
           )}
