@@ -5,7 +5,9 @@ from pydantic import BaseModel
 from typing import Dict, Any, Optional
 import os
 import json
+import time
 import traceback
+from fastapi.middleware.gzip import GZipMiddleware
 from dotenv import load_dotenv
 
 import pandas as pd
@@ -28,6 +30,13 @@ else:
 client = genai.Client(api_key=AI_API_KEY)
 
 app = FastAPI(title="Elite Institutional Trading AI")
+
+# --- 🛰️ PRODUCTION MIDDLEWARE ---
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+# --- 💾 CACHE SYSTEM ---
+SIGNAL_CACHE = {}  # { "key": {"data": {..}, "timestamp": 12345} }
+CACHE_TTL = 60      # Seconds
 
 # --- 🔍 MODEL DISCOVERY ---
 def list_available_models():
@@ -332,11 +341,22 @@ def generate_fallback_signal(req: SignalRequest) -> Dict[str, Any]:
 
 @app.post("/generate-signal")
 async def generate_signal(req: SignalRequest):
-    prompt = get_dynamic_prompt(req.data)
-    print(f"Prompt Sent: {prompt}")
-    
     symbol = req.symbol
+    prompt = get_dynamic_prompt(req.data)
+    
+    # 🕵️ Cache Check
+    cache_key = f"{symbol}_{req.trading_type}_{req.timeframe}"
+    if cache_key in SIGNAL_CACHE:
+        cached = SIGNAL_CACHE[cache_key]
+        if time.time() - cached["timestamp"] < CACHE_TTL:
+            print(f"📦 CACHE HIT: Returning stored signal for {cache_key}")
+            return validate_ai_signal(cached["data"], req.data)
+        else:
+            print(f"🕒 CACHE EXPIRED: Refreshing {cache_key}")
+            SIGNAL_CACHE.pop(cache_key, None)
+
     try:
+        print(f"Prompt Sent: {prompt}")
         print("🚀 Calling Gemini AI...")
         # Use the robust wrapper to keep the model retries but without silent local fallback
         response = call_gemini_with_fallback(prompt)
@@ -354,6 +374,12 @@ async def generate_signal(req: SignalRequest):
         reply_json["confidence"] = int(reply_json.get("confidence", 0))
         
         print("Gemini Response Decoded Successfully")
+        
+        # 💾 Cache Result
+        SIGNAL_CACHE[cache_key] = {
+            "data": reply_json,
+            "timestamp": time.time()
+        }
         
         # 🔥 Validation Layer (Returns HOLD if data is bad, but AI call succeeded)
         validated_signal = validate_ai_signal(reply_json, req.data)

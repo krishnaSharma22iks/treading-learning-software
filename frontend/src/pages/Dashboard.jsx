@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, lazy, Suspense, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Activity, Zap, TrendingUp, BarChart3, Info, MessageSquare } from "lucide-react";
 
@@ -8,9 +8,14 @@ import SignalCard from "../components/SignalCard";
 import TradeHistory from "../components/TradeHistory";
 import ModeSelector from "../components/ModeSelector";
 import StrategySelector from "../components/StrategySelector";
-import TradingAssistant from "../components/TradingAssistant";
+import StrategySelector from "../components/StrategySelector";
+
+// 🚀 LAZY LOADED COMPONENTS
+const TradingAssistant = lazy(() => import("../components/TradingAssistant"));
+const TradeHistory = lazy(() => import("../components/TradeHistory"));
+const SMCExpert = lazy(() => import("../components/SMCExpert"));
+
 import TradePlanCard from "../components/TradePlanCard";
-import SMCExpert from "../components/SMCExpert";
 import AiModeToggle from "../components/AiModeToggle";
 import TradingTypeModal from "../components/TradingTypeModal";
 import { Bot, AlertCircle } from "lucide-react";
@@ -29,11 +34,14 @@ import { getIndicatorAnalysis } from "../utils/indicatorEngine";
 import { getStrategyRules } from "../utils/strategyDefinitions";
 import { calculateRiskAssessment } from "../utils/riskEngine";
 import { analyzeAdaptiveMTFTrend } from "../utils/multiTimeframe";
-import RiskManager from "../components/RiskManager";
-import ValidationManager from "../components/ValidationManager";
-import ProfessionalSignal from "../components/ProfessionalSignal";
-import BeginnerSignal from "../components/BeginnerSignal";
 import BeginnerModeToggle from "../components/BeginnerModeToggle";
+
+// 🚀 MEMOIZED COMPONENTS
+const MemoizedSignalCard = memo(SignalCard);
+const MemoizedProfessionalSignal = memo(ProfessionalSignal);
+const MemoizedBeginnerSignal = memo(BeginnerSignal);
+const MemoizedRiskManager = memo(RiskManager);
+
 import { detectNoTradeConditions } from "../utils/noTradeEngine";
 import { calculateEMA } from "../utils/indicators";
 
@@ -109,6 +117,15 @@ const Dashboard = ({ isChartExpanded, setIsChartExpanded }) => {
     }
     return () => clearInterval(interval);
   }, [cooldownRemaining]);
+
+  // --- 🛰️ RENDER KEEP-ALIVE ---
+  useEffect(() => {
+    const keepAlive = setInterval(() => {
+      console.log("📡 Sending keep-alive ping to backend...");
+      fetch("http://127.0.0.1:8000/health").catch(e => console.log("Health ping deferred."));
+    }, 300000); // 5 Minutes
+    return () => clearInterval(keepAlive);
+  }, []);
 
   // 🛡️ Safe Indicator Reading Logic (DOM Scraper)
   const readIndicators = () => {
@@ -215,6 +232,7 @@ const Dashboard = ({ isChartExpanded, setIsChartExpanded }) => {
       const wait = Math.ceil((60000 - timeSinceLast) / 1000);
       setAiError(`PLEASE WAIT ${wait}S BEFORE REQUESTING AGAIN`);
       setCooldownRemaining(wait);
+      console.warn("AI Request Blocked: Rate Limit Enforcement");
       return;
     }
 
@@ -627,8 +645,8 @@ const Dashboard = ({ isChartExpanded, setIsChartExpanded }) => {
                   <TrendingUp className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                 )}
                 <span>
-                  {isAiLoading ? 'ANALYZING...' : 
-                   cooldownRemaining > 0 ? `COOLDOWN (${cooldownRemaining}S)` : 'VIEW SIGNALS'}
+                  {isAiLoading ? 'ANALYZING MARKET...' : 
+                   cooldownRemaining > 0 ? `PLEASE WAIT (${cooldownRemaining}S)` : 'VIEW SIGNALS'}
                 </span>
              </button>
           </div>
@@ -729,13 +747,13 @@ const Dashboard = ({ isChartExpanded, setIsChartExpanded }) => {
                  )}
 
                 {isBeginnerMode ? (
-                  <BeginnerSignal 
+                  <MemoizedBeginnerSignal 
                     data={aiDecision}
                     support={support}
                     resistance={resistance}
                   />
                 ) : isAiMode ? (
-                  <ProfessionalSignal 
+                  <MemoizedProfessionalSignal 
                     data={aiDecision}
                     tradingType={aiTradingType?.toUpperCase()}
                     support={support}
@@ -745,7 +763,7 @@ const Dashboard = ({ isChartExpanded, setIsChartExpanded }) => {
                     mtfData={mtfData}
                   />
                 ) : (
-                  <SignalCard 
+                  <MemoizedSignalCard 
                     signal={signal} 
                     entry={entry} 
                     sl={sl} 
@@ -761,7 +779,9 @@ const Dashboard = ({ isChartExpanded, setIsChartExpanded }) => {
                   />
                 )}
                 <div className="grid grid-cols-1 gap-6">
-                  <TradeHistory />
+                  <Suspense fallback={<div className="h-64 bg-slate-900/40 rounded-3xl animate-pulse" />}>
+                    <TradeHistory />
+                  </Suspense>
                 </div>
               </div>
               
@@ -769,7 +789,9 @@ const Dashboard = ({ isChartExpanded, setIsChartExpanded }) => {
                  {!isBeginnerMode && (
                    <>
                      <TradePlanCard plan={tradePlan} />
-                     <SMCExpert smc={smcData} />
+                     <Suspense fallback={<div className="h-96 bg-slate-900/40 rounded-3xl animate-pulse" />}>
+                       <SMCExpert smc={smcData} />
+                     </Suspense>
                    </>
                  )}
               </div>
@@ -837,8 +859,10 @@ const Dashboard = ({ isChartExpanded, setIsChartExpanded }) => {
                         <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
                            <Zap className="w-3.5 h-3.5" /> Institutional SMC Layer
                         </h3>
-                        <SMCExpert smc={smcData} />
-                        <RiskManager assessment={riskAssessment} />
+                        <Suspense fallback={<div className="h-40 bg-white/5 rounded-2xl animate-pulse" />}>
+                          <SMCExpert smc={smcData} />
+                        </Suspense>
+                        <MemoizedRiskManager assessment={riskAssessment} />
                         <ValidationManager mtf={mtfData} />
                       </>
                     )}
@@ -848,31 +872,33 @@ const Dashboard = ({ isChartExpanded, setIsChartExpanded }) => {
                     <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
                        <MessageSquare className="w-3.5 h-3.5 text-blue-400" /> Neural Terminal
                     </h3>
-                    <TradingAssistant 
-                      onDecision={(d) => setAiDecision(d)}
-                      telemetry={{
-                        strategy: isAiMode ? "AI_DRIVEN" : (mode === "scalp" ? "SCALPING" : (strategy === "rsi" ? "BASIC" : "SMC")),
-                        price, trend, support, resistance, rsi,
-                        volume: volumeSpike ? "HIGH" : "BASELINE",
-                        entry_quality: "GOOD",
-                        candle_status: "CLOSED",
-                        candle_strength: "STRONG",
-                        strategy_config: strategyConfig,
-                        smc_data: {
-                          liquidity_sweep: smcData?.liquidity_sweep ? "YES" : "NO",
-                          order_block: smcData?.entry_zone || "N/A",
-                          bos: smcData?.bos_detected ? "YES" : "NO",
-                          choch: smcData?.choch_detected ? "YES" : "NO",
-                          price_location: smcData?.at_order_block ? "AT_OB" : "MID"
-                        },
-                        expert_decision: expert?.decision,
-                        indicator_analysis: indicatorData,
-                        active_strategy_rules: activeStrategyRules,
-                        risk_assessment: riskAssessment,
-                        mtf_alignment: mtfData,
-                        verdict
-                      }} 
-                    />
+                    <Suspense fallback={<div className="h-64 flex items-center justify-center bg-white/5 rounded-2xl border border-white/5 animate-pulse"><Zap className="w-6 h-6 text-slate-700" /></div>}>
+                      <TradingAssistant 
+                        onDecision={(d) => setAiDecision(d)}
+                        telemetry={{
+                          strategy: isAiMode ? "AI_DRIVEN" : (mode === "scalp" ? "SCALPING" : (strategy === "rsi" ? "BASIC" : "SMC")),
+                          price, trend, support, resistance, rsi,
+                          volume: volumeSpike ? "HIGH" : "BASELINE",
+                          entry_quality: "GOOD",
+                          candle_status: "CLOSED",
+                          candle_strength: "STRONG",
+                          strategy_config: strategyConfig,
+                          smc_data: {
+                            liquidity_sweep: smcData?.liquidity_sweep ? "YES" : "NO",
+                            order_block: smcData?.entry_zone || "N/A",
+                            bos: smcData?.bos_detected ? "YES" : "NO",
+                            choch: smcData?.choch_detected ? "YES" : "NO",
+                            price_location: smcData?.at_order_block ? "AT_OB" : "MID"
+                          },
+                          expert_decision: expert?.decision,
+                          indicator_analysis: indicatorData,
+                          active_strategy_rules: activeStrategyRules,
+                          risk_assessment: riskAssessment,
+                          mtf_alignment: mtfData,
+                          verdict
+                        }} 
+                      />
+                    </Suspense>
                   </div>
                 </div>
                 
